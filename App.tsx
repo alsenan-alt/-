@@ -1,15 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import LoginPage from './components/LoginPage';
 import { INITIAL_EVENT_TYPES } from './constants';
 import type { Club, Supervisor, User, Event } from './types';
 
+// Custom hook to manage state in localStorage
+function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+    const [storedValue, setStoredValue] = useState<T>(() => {
+        if (typeof window === "undefined") {
+            return initialValue;
+        }
+        try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+            console.error(`Error reading localStorage key "${key}":`, error);
+            return initialValue;
+        }
+    });
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(key, JSON.stringify(storedValue));
+        } catch (error) {
+            console.error(`Error writing to localStorage key "${key}":`, error);
+        }
+    }, [key, storedValue]);
+
+    return [storedValue, setStoredValue];
+}
+
+
 const App: React.FC = () => {
-    const [users, setUsers] = useState<User[]>([]);
-    const [clubs, setClubs] = useState<Club[]>([]);
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [eventTypes, setEventTypes] = useState<string[]>(INITIAL_EVENT_TYPES);
+    const [users, setUsers] = useLocalStorage<User[]>('student_clubs_users', []);
+    const [rawClubs, setRawClubs] = useLocalStorage<Club[]>('student_clubs_clubs', []);
+    const [currentUser, setCurrentUser] = useLocalStorage<User | null>('student_clubs_currentUser', null);
+    const [eventTypes, setEventTypes] = useLocalStorage<string[]>('student_clubs_eventTypes', INITIAL_EVENT_TYPES);
+
+    // Rehydrate dates from strings to Date objects after loading from localStorage
+    const clubs: Club[] = useMemo(() => {
+        return rawClubs.map(club => ({
+            ...club,
+            events: club.events.map((event: any) => ({
+                ...event,
+                date: new Date(event.date),
+            }))
+        }));
+    }, [rawClubs]);
+    
+    const setClubs = setRawClubs;
 
     const handleLogin = (username: string, password: string): string | null => {
         const user = users.find(u => u.username === username && u.password === password);
@@ -35,7 +75,7 @@ const App: React.FC = () => {
                 return 'بيانات النادي غير مكتملة.';
             }
             const newClub: Club = {
-                id: clubs.length > 0 ? Math.max(...clubs.map(c => c.id)) + 1 : 1,
+                id: rawClubs.length > 0 ? Math.max(...rawClubs.map(c => c.id)) + 1 : 1,
                 name: userData.clubName,
                 president: newUser.name,
                 supervisorId: userData.supervisorId,
@@ -96,7 +136,7 @@ const App: React.FC = () => {
                 } else {
                     updatedEvents = [...club.events, eventToUpdate];
                 }
-                return { ...club, events: updatedEvents.sort((a, b) => a.date.getTime() - b.date.getTime()) };
+                return { ...club, events: updatedEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) };
             }
             return club;
         }));
