@@ -21,9 +21,11 @@ interface DashboardProps {
     onDeleteEventType: (typeToDelete: string) => void;
 }
 
-const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDeleteEvent'>> = ({ 
+const SupervisorDashboard: React.FC<DashboardProps> = ({ 
     user, 
-    allClubs, 
+    allClubs,
+    onUpdateEvent,
+    onDeleteEvent, 
     onDeleteAccount,
     onUpdateProfile,
     eventTypes, 
@@ -69,9 +71,11 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
                 return acc;
             }, {} as Record<EventType, number>);
 
-            const eventsThisYear = club.events.filter(event => event.date.getFullYear() === currentYear);
+            const completedEventsThisYear = club.events.filter(event => 
+                event.date.getFullYear() === currentYear && event.status === 'مكتملة'
+            );
 
-            eventsThisYear.forEach(event => {
+            completedEventsThisYear.forEach(event => {
                 const category = event.category;
                 if (category && counts.hasOwnProperty(category)) {
                     counts[category]++;
@@ -82,7 +86,7 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
                 clubId: club.id,
                 clubName: club.name,
                 counts,
-                totalEvents: eventsThisYear.length,
+                totalEvents: completedEventsThisYear.length,
             };
         });
     }, [supervisedClubs, currentYear, eventTypes]);
@@ -111,7 +115,7 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
     };
 
     const handleExportCsv = () => {
-        const headers = ['النادي', 'إجمالي الفعاليات', ...eventTypes];
+        const headers = ['النادي', 'إجمالي الفعاليات المكتملة', ...eventTypes];
         
         const rows = annualStats.map(stat => {
             // Escape quotes in club name
@@ -224,7 +228,7 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
 
             <div className="mt-10">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">الإحصائيات السنوية للفعاليات</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">الإحصائيات السنوية للفعاليات (المكتملة)</h3>
                     <button
                         onClick={handleExportCsv}
                         className="px-4 py-2 text-sm font-medium text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/50 rounded-lg hover:bg-sky-200 dark:hover:bg-sky-800/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-all flex items-center gap-2"
@@ -241,7 +245,7 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
                         <thead className="bg-slate-50 dark:bg-slate-700/50">
                             <tr>
                                 <th className="p-3 font-semibold text-slate-700 dark:text-slate-300 text-start sticky start-0 bg-slate-50 dark:bg-slate-700/50">النادي</th>
-                                <th className="p-3 font-semibold text-slate-700 dark:text-slate-300">إجمالي الفعاليات</th>
+                                <th className="p-3 font-semibold text-slate-700 dark:text-slate-300">إجمالي الفعاليات المكتملة</th>
                                 {eventTypes.map(type => <th key={type} className="p-3 font-semibold text-slate-700 dark:text-slate-300">{type}</th>)}
                             </tr>
                         </thead>
@@ -271,6 +275,10 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
                     events={eventsByClubAndMonth.get(`${selectedClub.id}-${selectedMonth}`) || []}
                     userRole="SUPERVISOR"
                     eventTypes={eventTypes}
+                    onUpdateEvent={onUpdateEvent}
+                    onDeleteEvent={onDeleteEvent}
+                    monthIndex={selectedMonth}
+                    year={currentYear}
                 />
             )}
             {isNotificationModalOpen && notificationClub && (

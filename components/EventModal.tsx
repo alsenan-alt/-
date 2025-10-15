@@ -26,7 +26,8 @@ const EventForm: React.FC<{
   eventTypes: string[];
   monthIndex: number;
   year: number;
-}> = ({ clubId, monthName, onUpdateEvent, onDeleteEvent, onCancel, existingEvent, eventTypes, monthIndex, year }) => {
+  userRole: UserRole;
+}> = ({ clubId, monthName, onUpdateEvent, onDeleteEvent, onCancel, existingEvent, eventTypes, monthIndex, year, userRole }) => {
     const [name, setName] = useState('');
     const [date, setDate] = useState('');
     const [description, setDescription] = useState('');
@@ -35,6 +36,8 @@ const EventForm: React.FC<{
     const [category, setCategory] = useState<EventType | ''>('');
     const [status, setStatus] = useState<EventStatus>('مخططة');
     const [error, setError] = useState('');
+
+    const isSupervisor = userRole === 'SUPERVISOR';
     
     useEffect(() => {
         if(existingEvent) {
@@ -98,20 +101,25 @@ const EventForm: React.FC<{
 
     return (
         <form onSubmit={handleSubmit} className="bg-slate-100 dark:bg-slate-900/50 p-4 rounded-lg mt-4 animate-fade-in">
-            <h3 className="font-bold mb-3 text-slate-800 dark:text-slate-200">{existingEvent ? 'تعديل فعالية' : `إضافة فعالية جديدة لشهر ${monthName}`}</h3>
+            <h3 className="font-bold mb-3 text-slate-800 dark:text-slate-200">
+                {existingEvent 
+                    ? (isSupervisor ? 'تعديل حالة الفعالية' : 'تعديل فعالية') 
+                    : `إضافة فعالية جديدة لشهر ${monthName}`
+                }
+            </h3>
             <div className="space-y-4">
                  <div>
                     <label htmlFor="eventName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">اسم الفعالية</label>
-                    <input type="text" id="eventName" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" required />
+                    <input type="text" id="eventName" value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 dark:disabled:bg-slate-800" required disabled={isSupervisor} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-1">
                         <label htmlFor="eventDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">تاريخ الفعالية</label>
-                        <input type="date" id="eventDate" value={date} onChange={e => setDate(e.target.value)} min={firstDayOfMonth} max={lastDayOfMonth} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" required />
+                        <input type="date" id="eventDate" value={date} onChange={e => setDate(e.target.value)} min={firstDayOfMonth} max={lastDayOfMonth} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 dark:disabled:bg-slate-800" required disabled={isSupervisor} />
                     </div>
                     <div className="sm:col-span-1">
                         <label htmlFor="eventAttendees" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">عدد الحضور</label>
-                        <input type="number" id="eventAttendees" value={attendees} onChange={e => setAttendees(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" required />
+                        <input type="number" id="eventAttendees" value={attendees} onChange={e => setAttendees(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 dark:disabled:bg-slate-800" required disabled={isSupervisor} />
                     </div>
                     <div className="sm:col-span-1">
                          <label htmlFor="eventStatus" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">حالة الفعالية</label>
@@ -129,36 +137,38 @@ const EventForm: React.FC<{
 
                 <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">نوع الفعالية</label>
-                    <div className="flex flex-wrap gap-x-6 gap-y-3 p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg">
-                        {eventTypes.map(type => (
-                            <label key={type} className="flex items-center space-x-2 rtl:space-x-reverse cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="eventType"
-                                    value={type}
-                                    checked={category === type}
-                                    onChange={(e) => setCategory(e.target.value as EventType)}
-                                    className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
-                                />
-                                <span className="text-sm text-slate-700 dark:text-slate-300">{type}</span>
-                            </label>
-                        ))}
-                    </div>
+                    <fieldset disabled={isSupervisor} className="disabled:opacity-70">
+                        <div className="flex flex-wrap gap-x-6 gap-y-3 p-2 bg-slate-200/50 dark:bg-slate-800/50 rounded-lg">
+                            {eventTypes.map(type => (
+                                <label key={type} className="flex items-center space-x-2 rtl:space-x-reverse cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="eventType"
+                                        value={type}
+                                        checked={category === type}
+                                        onChange={(e) => setCategory(e.target.value as EventType)}
+                                        className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
+                                    />
+                                    <span className="text-sm text-slate-700 dark:text-slate-300">{type}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </fieldset>
                 </div>
 
                 <div>
                     <label htmlFor="eventDescription" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">الوصف</label>
-                    <textarea id="eventDescription" value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                    <textarea id="eventDescription" value={description} onChange={e => setDescription(e.target.value)} rows={2} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 dark:disabled:bg-slate-800" disabled={isSupervisor}></textarea>
                 </div>
                  <div>
                     <label htmlFor="eventSummary" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">ملخص ما بعد الفعالية</label>
-                    <textarea id="eventSummary" value={summary} onChange={e => setSummary(e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                    <textarea id="eventSummary" value={summary} onChange={e => setSummary(e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 dark:disabled:bg-slate-800" disabled={isSupervisor}></textarea>
                 </div>
                 {error && <p className="text-sm text-rose-500">{error}</p>}
             </div>
             <div className="mt-6 flex justify-between items-center">
                 <div>
-                     {existingEvent && (
+                     {existingEvent && !isSupervisor && (
                         <button 
                             type="button" 
                             onClick={handleDelete}
@@ -170,7 +180,9 @@ const EventForm: React.FC<{
                 </div>
                 <div className="flex gap-3">
                     <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600">إلغاء</button>
-                    <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700">{existingEvent ? 'حفظ التعديلات' : 'حفظ الفعالية'}</button>
+                    <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700">
+                        {existingEvent ? (isSupervisor ? 'حفظ الحالة' : 'حفظ التعديلات') : 'حفظ الفعالية'}
+                    </button>
                 </div>
             </div>
         </form>
@@ -199,7 +211,7 @@ const EventItem: React.FC<{event: Event, onEdit: (event: Event) => void, userRol
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusColor(event.status)}`}>
                         {event.status}
                     </span>
-                    {userRole === 'PRESIDENT' && (
+                    {(userRole === 'PRESIDENT' || userRole === 'SUPERVISOR') && (
                         <button onClick={() => onEdit(event)} className="text-xs px-3 py-1 bg-slate-200 dark:bg-slate-600 rounded-full hover:bg-slate-300 dark:hover:bg-slate-500">تعديل</button>
                     )}
                 </div>
@@ -269,6 +281,7 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, club, monthNam
                 onCancel={() => setView('LIST')}
                 existingEvent={selectedEvent}
                 eventTypes={eventTypes}
+                userRole={userRole}
             />
           ) : (
             <>
