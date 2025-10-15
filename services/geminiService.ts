@@ -1,15 +1,37 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Ensure the API key is available in the environment variables
-const apiKey = process.env.API_KEY;
-if (!apiKey) {
-    throw new Error("API_KEY environment variable not set");
+let ai: GoogleGenAI | null | undefined = undefined;
+
+function getAiInstance(): GoogleGenAI | null {
+    if (ai === undefined) {
+        // In a browser environment without a build step, process.env might not exist.
+        const apiKey = (typeof process !== 'undefined' && process.env && process.env.API_KEY)
+            ? process.env.API_KEY
+            : undefined;
+
+        if (!apiKey) {
+            console.error("API_KEY environment variable not set. AI features are disabled.");
+            ai = null;
+        } else {
+            try {
+                ai = new GoogleGenAI({ apiKey });
+            } catch (error) {
+                console.error("Failed to initialize GoogleGenAI:", error);
+                ai = null;
+            }
+        }
+    }
+    return ai;
 }
 
-const ai = new GoogleGenAI({ apiKey });
 
 export const generateReminder = async (clubName: string, monthName: string): Promise<string> => {
+    const aiInstance = getAiInstance();
+    if (!aiInstance) {
+        return "عذرًا، خدمة الذكاء الاصطناعي غير متاحة حاليًا. يرجى التأكد من تكوين مفتاح API بشكل صحيح.";
+    }
+
     const prompt = `
     أنت مساعد مشرف أندية طلابية في جامعة. مهمتك هي كتابة رسالة تذكير احترافية ومشجعة لرئيس نادي طلابي.
     
@@ -25,7 +47,7 @@ export const generateReminder = async (clubName: string, monthName: string): Pro
     `;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await aiInstance.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
