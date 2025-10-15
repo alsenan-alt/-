@@ -201,13 +201,77 @@ const App: React.FC = () => {
         })));
     };
 
+    const handleExportData = () => {
+        const dataToExport = {
+            users: users,
+            clubs: rawClubs,
+            eventTypes: eventTypes,
+        };
+        const jsonString = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = 'student_clubs_backup.json';
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImportData = (file: File) => {
+        if (!file) {
+            alert('لم يتم اختيار ملف.');
+            return;
+        }
+        if (file.type !== 'application/json') {
+            alert('يرجى اختيار ملف JSON صالح.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const result = e.target?.result;
+                if (typeof result !== 'string') {
+                    throw new Error('فشل في قراءة الملف.');
+                }
+                const data = JSON.parse(result);
+                
+                // Basic validation
+                if (!data.users || !data.clubs || !data.eventTypes || !Array.isArray(data.users) || !Array.isArray(data.clubs) || !Array.isArray(data.eventTypes)) {
+                    throw new Error('ملف البيانات غير صالح أو تالف.');
+                }
+
+                if (window.confirm('هل أنت متأكد من رغبتك في استيراد هذه البيانات؟ سيتم الكتابة فوق جميع البيانات الحالية.')) {
+                    setUsers(data.users);
+                    setRawClubs(data.clubs);
+                    setEventTypes(data.eventTypes);
+                    // Log out user to ensure consistent state
+                    setCurrentUser(null); 
+                    alert('تم استيراد البيانات بنجاح! سيتم تسجيل خروجك لتطبيق التغييرات.');
+                }
+
+            } catch (error) {
+                console.error("Error importing data:", error);
+                alert(`حدث خطأ أثناء استيراد البيانات: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+            }
+        };
+        reader.readAsText(file);
+    };
+
     const supervisors: Supervisor[] = users
         .filter(user => user.role === 'SUPERVISOR')
         .map(({ id, name }) => ({ id, name }));
 
     return (
         <div className="min-h-screen">
-            <Header user={currentUser} onLogout={handleLogout} />
+            <Header 
+                user={currentUser} 
+                onLogout={handleLogout} 
+                onImportData={handleImportData}
+                onExportData={handleExportData}
+            />
             <main className="p-4 sm:p-6 lg:p-8">
                 {!currentUser ? (
                     <LoginPage 
