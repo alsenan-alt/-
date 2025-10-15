@@ -12,6 +12,8 @@ interface EventModalProps {
   eventTypes: string[];
   onUpdateEvent?: (clubId: number, event: Event) => void;
   onDeleteEvent?: (clubId: number, eventId: string) => void;
+  monthIndex?: number;
+  year?: number;
 }
 
 const EventForm: React.FC<{
@@ -22,7 +24,9 @@ const EventForm: React.FC<{
   onCancel: () => void;
   existingEvent: Event | null;
   eventTypes: string[];
-}> = ({ clubId, monthName, onUpdateEvent, onDeleteEvent, onCancel, existingEvent, eventTypes }) => {
+  monthIndex: number;
+  year: number;
+}> = ({ clubId, monthName, onUpdateEvent, onDeleteEvent, onCancel, existingEvent, eventTypes, monthIndex, year }) => {
     const [name, setName] = useState('');
     const [date, setDate] = useState('');
     const [description, setDescription] = useState('');
@@ -42,15 +46,17 @@ const EventForm: React.FC<{
             setCategory(existingEvent.category || '');
             setStatus(existingEvent.status || 'مخططة');
         } else {
+            const monthString = (monthIndex + 1).toString().padStart(2, '0');
+            const initialDate = `${year}-${monthString}-01`;
+            setDate(initialDate);
             setName('');
-            setDate('');
             setDescription('');
             setSummary('');
             setAttendees('');
             setCategory('');
             setStatus('مخططة');
         }
-    }, [existingEvent]);
+    }, [existingEvent, monthIndex, year]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -85,6 +91,10 @@ const EventForm: React.FC<{
             }
         }
     };
+    
+    const firstDayOfMonth = `${year}-${(monthIndex + 1).toString().padStart(2, '0')}-01`;
+    const lastDayObject = new Date(year, monthIndex + 1, 0);
+    const lastDayOfMonth = `${year}-${(monthIndex + 1).toString().padStart(2, '0')}-${lastDayObject.getDate()}`;
 
     return (
         <form onSubmit={handleSubmit} className="bg-slate-100 dark:bg-slate-900/50 p-4 rounded-lg mt-4 animate-fade-in">
@@ -97,7 +107,7 @@ const EventForm: React.FC<{
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-1">
                         <label htmlFor="eventDate" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">تاريخ الفعالية</label>
-                        <input type="date" id="eventDate" value={date} onChange={e => setDate(e.target.value)} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" required />
+                        <input type="date" id="eventDate" value={date} onChange={e => setDate(e.target.value)} min={firstDayOfMonth} max={lastDayOfMonth} className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500" required />
                     </div>
                     <div className="sm:col-span-1">
                         <label htmlFor="eventAttendees" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">عدد الحضور</label>
@@ -209,7 +219,7 @@ const EventItem: React.FC<{event: Event, onEdit: (event: Event) => void, userRol
 };
 
 
-const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, club, monthName, events, onUpdateEvent, onDeleteEvent, userRole, eventTypes }) => {
+const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, club, monthName, events, onUpdateEvent, onDeleteEvent, userRole, eventTypes, monthIndex, year }) => {
   const [view, setView] = useState<'LIST' | 'FORM'>('LIST');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
@@ -248,10 +258,12 @@ const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, club, monthNam
           </div>
         </div>
         <div className="p-6 overflow-y-auto">
-          {view === 'FORM' && onUpdateEvent && onDeleteEvent ? (
+          {view === 'FORM' && onUpdateEvent && onDeleteEvent && monthIndex !== undefined && year !== undefined ? (
              <EventForm 
                 clubId={club.id} 
-                monthName={monthName} 
+                monthName={monthName}
+                monthIndex={monthIndex}
+                year={year}
                 onUpdateEvent={onUpdateEvent} 
                 onDeleteEvent={onDeleteEvent}
                 onCancel={() => setView('LIST')}

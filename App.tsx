@@ -126,6 +126,34 @@ const App: React.FC = () => {
         setCurrentUser(null);
     };
 
+     const handleUpdateProfile = (userId: number, updatedData: Partial<Omit<User, 'id' | 'role'>> & { clubName?: string }) => {
+        let updatedUser: User | undefined;
+
+        setUsers(prevUsers => prevUsers.map(user => {
+            if (user.id === userId) {
+                const { clubName, password, ...userData } = updatedData;
+                const newPassword = password && password.trim() !== '' ? password : user.password;
+                updatedUser = { ...user, ...userData, password: newPassword };
+                return updatedUser;
+            }
+            return user;
+        }));
+
+        if (currentUser && currentUser.id === userId && updatedUser) {
+            setCurrentUser(updatedUser);
+        }
+        
+        if (currentUser?.role === 'PRESIDENT' && currentUser.clubId && updatedData.clubName) {
+            setClubs(prevClubs => prevClubs.map(club => {
+                if (club.id === currentUser!.clubId) {
+                    return { ...club, name: updatedData.clubName! };
+                }
+                return club;
+            }));
+        }
+        return null; 
+    };
+
     const handleUpdateEvent = (clubId: number, eventToUpdate: Event) => {
          setClubs(prevClubs => prevClubs.map(club => {
             if (club.id === clubId) {
@@ -196,6 +224,7 @@ const App: React.FC = () => {
                         onUpdateEvent={handleUpdateEvent}
                         onDeleteEvent={handleDeleteEvent}
                         onDeleteAccount={handleDeleteAccount}
+                        onUpdateProfile={handleUpdateProfile}
                         eventTypes={eventTypes}
                         onAddEventType={handleAddEventType}
                         onUpdateEventType={handleUpdateEventType}

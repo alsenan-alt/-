@@ -14,6 +14,7 @@ interface DashboardProps {
     onUpdateEvent: (clubId: number, event: Event) => void;
     onDeleteEvent: (clubId: number, eventId: string) => void;
     onDeleteAccount: (userId: number) => void;
+    onUpdateProfile: (userId: number, updatedData: Partial<Omit<User, 'id' | 'role'>> & { clubName?: string }) => string | null;
     eventTypes: string[];
     onAddEventType: (newType: string) => void;
     onUpdateEventType: (oldType: string, newType: string) => void;
@@ -24,6 +25,7 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
     user, 
     allClubs, 
     onDeleteAccount,
+    onUpdateProfile,
     eventTypes, 
     onAddEventType,
     onUpdateEventType,
@@ -258,7 +260,7 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
                 </div>
             </div>
 
-            <ProfileSettings user={user} onDeleteAccount={onDeleteAccount} />
+            <ProfileSettings user={user} onDeleteAccount={onDeleteAccount} onUpdateProfile={onUpdateProfile} />
 
             {isEventModalOpen && selectedClub && selectedMonth !== null && (
                 <EventModal
@@ -286,7 +288,7 @@ const SupervisorDashboard: React.FC<Omit<DashboardProps, 'onUpdateEvent' | 'onDe
 };
 
 
-const PresidentDashboard: React.FC<DashboardProps> = ({ user, allClubs, supervisors, onUpdateEvent, onDeleteEvent, onDeleteAccount, eventTypes }) => {
+const PresidentDashboard: React.FC<DashboardProps> = ({ user, allClubs, supervisors, onUpdateEvent, onDeleteEvent, onDeleteAccount, onUpdateProfile, eventTypes }) => {
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 
@@ -297,17 +299,19 @@ const PresidentDashboard: React.FC<DashboardProps> = ({ user, allClubs, supervis
     const supervisor = useMemo(() => {
         return supervisors.find(s => s.id === myClub?.supervisorId);
     }, [supervisors, myClub]);
+    
+    const currentYear = new Date().getFullYear();
 
     const eventsByMonth = useMemo(() => {
         const map = new Map<number, Event[]>();
         if (myClub) {
             for (let i = 0; i < 12; i++) {
-                const monthlyEvents = myClub.events.filter(event => event.date.getMonth() === i);
+                const monthlyEvents = myClub.events.filter(event => event.date.getMonth() === i && event.date.getFullYear() === currentYear);
                 map.set(i, monthlyEvents);
             }
         }
         return map;
-    }, [myClub]);
+    }, [myClub, currentYear]);
 
     const upcomingEvents = useMemo(() => {
         if (!myClub) return [];
@@ -382,7 +386,13 @@ const PresidentDashboard: React.FC<DashboardProps> = ({ user, allClubs, supervis
                 )}
             </div>
 
-            <ProfileSettings user={user} onDeleteAccount={onDeleteAccount} clubName={myClub.name} />
+            <ProfileSettings 
+                user={user} 
+                onDeleteAccount={onDeleteAccount}
+                onUpdateProfile={onUpdateProfile}
+                clubName={myClub.name}
+                supervisorName={supervisor?.name}
+            />
 
             {isEventModalOpen && selectedMonth !== null && (
                 <EventModal
@@ -390,6 +400,8 @@ const PresidentDashboard: React.FC<DashboardProps> = ({ user, allClubs, supervis
                     onClose={() => setIsEventModalOpen(false)}
                     club={myClub}
                     monthName={ARABIC_MONTHS[selectedMonth]}
+                    monthIndex={selectedMonth}
+                    year={currentYear}
                     events={eventsByMonth.get(selectedMonth) || []}
                     onUpdateEvent={onUpdateEvent}
                     onDeleteEvent={onDeleteEvent}
